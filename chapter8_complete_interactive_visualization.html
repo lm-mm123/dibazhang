@@ -1,0 +1,1046 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>第8章完整交互式数据可视化平台</title>
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Noto Sans SC', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #2c3e50;
+        }
+        
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            padding: 25px 0;
+            text-align: center;
+            box-shadow: 0 5px 25px rgba(0,0,0,0.1);
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 30px auto;
+            padding: 0 20px;
+        }
+        
+        .controls {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(15px);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 35px rgba(0,0,0,0.1);
+        }
+        
+        .control-group {
+            margin-bottom: 25px;
+        }
+        
+        .control-group h3 {
+            margin-bottom: 15px;
+            color: #2c3e50;
+            font-size: 1.2em;
+        }
+        
+        .control-row {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .control-row label {
+            min-width: 120px;
+            font-weight: 500;
+        }
+        
+        .control-row select,
+        .control-row input {
+            min-width: 200px;
+            padding: 10px 15px;
+            border: 2px solid #e1e8ed;
+            border-radius: 10px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        
+        .control-row select:focus,
+        .control-row input:focus {
+            border-color: #667eea;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .chart-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(650px, 1fr));
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+        
+        .chart-container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(15px);
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 10px 35px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .chart-container:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.15);
+        }
+        
+        .chart-container h3 {
+            margin-bottom: 20px;
+            color: #2c3e50;
+            text-align: center;
+            font-size: 1.3em;
+        }
+        
+        .chart-content {
+            height: 400px;
+            position: relative;
+        }
+        
+        .export-btn {
+            background: linear-gradient(135deg, #28a745, #20c997);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            margin-top: 15px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        
+        .export-btn:hover {
+            background: linear-gradient(135deg, #218838, #1e7e34);
+            transform: translateY(-2px);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 5px;
+        }
+        
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #5a6fd8, #6b4190);
+            transform: translateY(-2px);
+        }
+        
+        .stats {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(15px);
+            border-radius: 20px;
+            padding: 30px;
+            margin-top: 30px;
+            box-shadow: 0 10px 35px rgba(0,0,0,0.1);
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .stat-item {
+            text-align: center;
+            padding: 20px;
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            border-radius: 15px;
+        }
+        
+        .stat-number {
+            font-size: 2em;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            color: #6c757d;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>第8章完整交互式数据可视化平台</h1>
+        <p>包含所有图形类型：折线图、散点图、直方图、箱线图、热力图、等高线图、3D图、棉棒图、甘特图、人口金字塔、哑铃图</p>
+    </div>
+
+    <div class="container">
+        <div class="controls">
+            <div class="control-group">
+                <h3>📊 图表控制</h3>
+                <div class="control-row">
+                    <label>图表类型：</label>
+                    <select id="chartType">
+                        <option value="all">显示所有图表</option>
+                        <option value="line">折线图</option>
+                        <option value="scatter">散点图</option>
+                        <option value="histogram">直方图</option>
+                        <option value="box">箱线图</option>
+                        <option value="heatmap">热力图</option>
+                        <option value="contour">等高线图</option>
+                        <option value="3d">3D曲面图</option>
+                        <option value="stem">棉棒图</option>
+                        <option value="gantt">甘特图</option>
+                        <option value="pyramid">人口金字塔</option>
+                        <option value="dumbbell">哑铃图</option>
+                    </select>
+                </div>
+                <div class="control-row">
+                    <label>主题风格：</label>
+                    <select id="theme">
+                        <option value="plotly">Plotly默认</option>
+                        <option value="plotly_white">纯白风格</option>
+                        <option value="plotly_dark">深色风格</option>
+                        <option value="ggplot2">ggplot2风格</option>
+                        <option value="seaborn">Seaborn风格</option>
+                    </select>
+                    
+                    <label>配色方案：</label>
+                    <select id="colorScheme">
+                        <option value="default">默认配色</option>
+                        <option value="rainbow">彩虹色系</option>
+                        <option value="ocean">海洋色系</option>
+                        <option value="sunset">日落色系</option>
+                        <option value="forest">森林色系</option>
+                    </select>
+                </div>
+                <div class="control-row">
+                    <label>数据点数：</label>
+                    <input type="range" id="dataPoints" min="10" max="1000" value="50">
+                    <span id="dataPointsDisplay">50</span>
+                </div>
+                <div class="control-row">
+                    <label>字体选择：</label>
+                    <select id="fontFamily">
+                        <option value="Microsoft YaHei">微软雅黑</option>
+                        <option value="SimSun">宋体</option>
+                        <option value="SimHei">黑体</option>
+                        <option value="KaiTi">楷体</option>
+                        <option value="Arial">Arial</option>
+                    </select>
+                    
+                    <button class="btn-primary" onclick="updateAllCharts()">🔄 更新所有图表</button>
+                    <button class="btn-primary" onclick="randomizeData()">🎲 随机数据</button>
+                    <button class="btn-primary" onclick="exportAllCharts()">📥 导出所有图表</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="chart-grid" id="chartGrid">
+            <!-- 折线图 -->
+            <div class="chart-container" data-chart="line">
+                <h3>📈 折线图 - 时间序列分析</h3>
+                <div class="chart-content" id="lineChart"></div>
+                <button class="export-btn" onclick="exportChart('lineChart')">导出PNG</button>
+            </div>
+
+            <!-- 散点图 -->
+            <div class="chart-container" data-chart="scatter">
+                <h3>🔵 散点图 - 相关性分析</h3>
+                <div class="chart-content" id="scatterChart"></div>
+                <button class="export-btn" onclick="exportChart('scatterChart')">导出PNG</button>
+            </div>
+
+            <!-- 直方图 -->
+            <div class="chart-container" data-chart="histogram">
+                <h3>📊 直方图 - 数据分布</h3>
+                <div class="chart-content" id="histogramChart"></div>
+                <button class="export-btn" onclick="exportChart('histogramChart')">导出PNG</button>
+            </div>
+
+            <!-- 箱线图 -->
+            <div class="chart-container" data-chart="box">
+                <h3>📦 箱线图 - 统计分布</h3>
+                <div class="chart-content" id="boxChart"></div>
+                <button class="export-btn" onclick="exportChart('boxChart')">导出PNG</button>
+            </div>
+
+            <!-- 热力图 -->
+            <div class="chart-container" data-chart="heatmap">
+                <h3>🔥 热力图 - 相关性矩阵</h3>
+                <div class="chart-content" id="heatmapChart"></div>
+                <button class="export-btn" onclick="exportChart('heatmapChart')">导出PNG</button>
+            </div>
+
+            <!-- 等高线图 -->
+            <div class="chart-container" data-chart="contour">
+                <h3>🗺️ 等高线图 - 三维地形</h3>
+                <div class="chart-content" id="contourChart"></div>
+                <button class="export-btn" onclick="exportChart('contourChart')">导出PNG</button>
+            </div>
+
+            <!-- 3D曲面图 -->
+            <div class="chart-container" data-chart="3d">
+                <h3>🌐 3D曲面图 - 立体数据</h3>
+                <div class="chart-content" id="threeDChart"></div>
+                <button class="export-btn" onclick="exportChart('threeDChart')">导出PNG</button>
+            </div>
+
+            <!-- 棉棒图 -->
+            <div class="chart-container" data-chart="stem">
+                <h3>🌿 棉棒图 - 燃料消耗对比</h3>
+                <div class="chart-content" id="stemChart"></div>
+                <button class="export-btn" onclick="exportChart('stemChart')">导出PNG</button>
+            </div>
+
+            <!-- 甘特图 -->
+            <div class="chart-container" data-chart="gantt">
+                <h3>📅 甘特图 - 项目时间线</h3>
+                <div class="chart-content" id="ganttChart"></div>
+                <button class="export-btn" onclick="exportChart('ganttChart')">导出PNG</button>
+            </div>
+
+            <!-- 人口金字塔 -->
+            <div class="chart-container" data-chart="pyramid">
+                <h3>👥 人口金字塔 - 人口结构</h3>
+                <div class="chart-content" id="pyramidChart"></div>
+                <button class="export-btn" onclick="exportChart('pyramidChart')">导出PNG</button>
+            </div>
+
+            <!-- 哑铃图 -->
+            <div class="chart-container" data-chart="dumbbell">
+                <h3>⚖️ 哑铃图 - 数据对比</h3>
+                <div class="chart-content" id="dumbbellChart"></div>
+                <button class="export-btn" onclick="exportChart('dumbbellChart')">导出PNG</button>
+            </div>
+        </div>
+
+        <div class="stats">
+            <h3>📈 数据统计</h3>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-number" id="totalPoints">0</div>
+                    <div class="stat-label">总数据点</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number" id="totalCharts">11</div>
+                    <div class="stat-label">图表数量</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number" id="dataSeries">0</div>
+                    <div class="stat-label">数据系列</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number" id="colorCount">0</div>
+                    <div class="stat-label">颜色数量</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 全局数据
+        let dataPoints = 50;
+        let currentTheme = 'plotly';
+        let currentColorScheme = 'default';
+        let currentFont = 'Microsoft YaHei';
+        let allChartData = {};
+
+        // 颜色方案
+        const colorSchemes = {
+            default: ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd'],
+            rainbow: ['#ff0000', '#ff7f00', '#ffff00', '#00ff00', '#0000ff', '#4b0082', '#9400d3'],
+            ocean: ['#006994', '#0a7ca4', '#1490b4', '#1ea3c4', '#28b6d4', '#32cae4', '#3cddf4'],
+            sunset: ['#ff6b6b', '#ff8e53', '#fe6b8b', '#ff8e53', '#ff6b35', '#f77737', '#ff9558'],
+            forest: ['#2d5016', '#3a6b1f', '#478628', '#55a131', '#62bb3a', '#70c543', '#7dcf4c']
+        };
+
+        // 主题配置
+        const themes = {
+            plotly: {
+                backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                gridcolor: '#e1e8ed',
+                paper_bgcolor: 'rgba(255, 255, 255, 0)',
+                plot_bgcolor: 'rgba(255, 255, 255, 0)',
+                font: { family: 'Microsoft YaHei' }
+            },
+            plotly_white: {
+                backgroundColor: 'rgba(255, 255, 255, 0.98)',
+                gridcolor: '#f0f0f0',
+                paper_bgcolor: 'rgba(255, 255, 255, 0)',
+                plot_bgcolor: 'rgba(255, 255, 255, 0)',
+                font: { family: 'Microsoft YaHei' }
+            },
+            plotly_dark: {
+                backgroundColor: 'rgba(44, 62, 80, 0.95)',
+                gridcolor: '#34495e',
+                paper_bgcolor: 'rgba(44, 62, 80, 0)',
+                plot_bgcolor: 'rgba(44, 62, 80, 0)',
+                font: { family: 'Microsoft YaHei', color: '#ffffff' }
+            },
+            ggplot2: {
+                backgroundColor: 'rgba(248, 248, 248, 0.95)',
+                gridcolor: '#d9d9d9',
+                paper_bgcolor: 'rgba(248, 248, 248, 0)',
+                plot_bgcolor: 'rgba(248, 248, 248, 0)',
+                font: { family: 'Microsoft YaHei' }
+            },
+            seaborn: {
+                backgroundColor: 'rgba(252, 248, 243, 0.95)',
+                gridcolor: '#e8e4e1',
+                paper_bgcolor: 'rgba(252, 248, 243, 0)',
+                plot_bgcolor: 'rgba(252, 248, 243, 0)',
+                font: { family: 'Microsoft YaHei' }
+            }
+        };
+
+        // 生成数据
+        function generateData() {
+            const x = [];
+            const y1 = [];
+            const y2 = [];
+            const y3 = [];
+            
+            for (let i = 0; i < dataPoints; i++) {
+                x.push(i);
+                y1.push(Math.sin(i * 0.1) * 50 + Math.random() * 20 + 50);
+                y2.push(Math.cos(i * 0.1) * 40 + Math.random() * 15 + 60);
+                y3.push(Math.sin(i * 0.05) * 30 + Math.random() * 10 + 40);
+            }
+            
+            return { x, y1, y2, y3 };
+        }
+
+        // 创建折线图
+        function createLineChart() {
+            const data = generateData();
+            const colors = colorSchemes[currentColorScheme];
+            
+            allChartData.line = {
+                data: [
+                    {
+                        x: data.x,
+                        y: data.y1,
+                        type: 'scatter',
+                        mode: 'lines+markers',
+                        name: '系列1',
+                        line: { color: colors[0], width: 3 },
+                        marker: { size: 6 }
+                    },
+                    {
+                        x: data.x,
+                        y: data.y2,
+                        type: 'scatter',
+                        mode: 'lines+markers',
+                        name: '系列2',
+                        line: { color: colors[1], width: 3 },
+                        marker: { size: 6 }
+                    },
+                    {
+                        x: data.x,
+                        y: data.y3,
+                        type: 'scatter',
+                        mode: 'lines+markers',
+                        name: '系列3',
+                        line: { color: colors[2], width: 3 },
+                        marker: { size: 6 }
+                    }
+                ],
+                layout: {
+                    title: '时间序列分析',
+                    xaxis: { title: '时间' },
+                    yaxis: { title: '数值' },
+                    ...themes[currentTheme],
+                    font: { ...themes[currentTheme].font, family: currentFont }
+                }
+            };
+            
+            Plotly.newPlot('lineChart', allChartData.line.data, allChartData.line.layout, {responsive: true});
+        }
+
+        // 创建散点图
+        function createScatterChart() {
+            const data = generateData();
+            const colors = colorSchemes[currentColorScheme];
+            
+            allChartData.scatter = {
+                data: [
+                    {
+                        x: data.y1,
+                        y: data.y2,
+                        mode: 'markers',
+                        type: 'scatter',
+                        name: '数据点',
+                        marker: { 
+                            color: colors[0], 
+                            size: data.x.map(v => v / 2),
+                            colorscale: 'Viridis',
+                            showscale: true,
+                            colorbar: { title: '大小' }
+                        }
+                    }
+                ],
+                layout: {
+                    title: '相关性分析',
+                    xaxis: { title: 'X值' },
+                    yaxis: { title: 'Y值' },
+                    ...themes[currentTheme],
+                    font: { ...themes[currentTheme].font, family: currentFont }
+                }
+            };
+            
+            Plotly.newPlot('scatterChart', allChartData.scatter.data, allChartData.scatter.layout, {responsive: true});
+        }
+
+        // 创建直方图
+        function createHistogramChart() {
+            const data = generateData();
+            const colors = colorSchemes[currentColorScheme];
+            
+            allChartData.histogram = {
+                data: [
+                    {
+                        x: data.y1,
+                        type: 'histogram',
+                        name: '系列1',
+                        nbinsx: 20,
+                        marker: { color: colors[0] },
+                        opacity: 0.7
+                    },
+                    {
+                        x: data.y2,
+                        type: 'histogram',
+                        name: '系列2',
+                        nbinsx: 20,
+                        marker: { color: colors[1] },
+                        opacity: 0.7
+                    }
+                ],
+                layout: {
+                    title: '数据分布直方图',
+                    xaxis: { title: '数值区间' },
+                    yaxis: { title: '频次' },
+                    barmode: 'overlay',
+                    ...themes[currentTheme],
+                    font: { ...themes[currentTheme].font, family: currentFont }
+                }
+            };
+            
+            Plotly.newPlot('histogramChart', allChartData.histogram.data, allChartData.histogram.layout, {responsive: true});
+        }
+
+        // 创建箱线图
+        function createBoxChart() {
+            const data = generateData();
+            const colors = colorSchemes[currentColorScheme];
+            
+            allChartData.box = {
+                data: [
+                    {
+                        y: data.y1,
+                        type: 'box',
+                        name: '系列1',
+                        marker: { color: colors[0] }
+                    },
+                    {
+                        y: data.y2,
+                        type: 'box',
+                        name: '系列2',
+                        marker: { color: colors[1] }
+                    },
+                    {
+                        y: data.y3,
+                        type: 'box',
+                        name: '系列3',
+                        marker: { color: colors[2] }
+                    }
+                ],
+                layout: {
+                    title: '统计分布箱线图',
+                    yaxis: { title: '数值' },
+                    ...themes[currentTheme],
+                    font: { ...themes[currentTheme].font, family: currentFont }
+                }
+            };
+            
+            Plotly.newPlot('boxChart', allChartData.box.data, allChartData.box.layout, {responsive: true});
+        }
+
+        // 创建热力图
+        function createHeatmapChart() {
+            const size = 20;
+            const z = [];
+            for (let i = 0; i < size; i++) {
+                z[i] = [];
+                for (let j = 0; j < size; j++) {
+                    z[i][j] = Math.sin(i * 0.3) * Math.cos(j * 0.3) * 100 + Math.random() * 20;
+                }
+            }
+            
+            allChartData.heatmap = {
+                data: [
+                    {
+                        z: z,
+                        type: 'heatmap',
+                        colorscale: 'Viridis',
+                        showscale: true,
+                        colorbar: { title: '数值' }
+                    }
+                ],
+                layout: {
+                    title: '相关性热力图',
+                    xaxis: { title: 'X轴' },
+                    yaxis: { title: 'Y轴' },
+                    ...themes[currentTheme],
+                    font: { ...themes[currentTheme].font, family: currentFont }
+                }
+            };
+            
+            Plotly.newPlot('heatmapChart', allChartData.heatmap.data, allChartData.heatmap.layout, {responsive: true});
+        }
+
+        // 创建等高线图
+        function createContourChart() {
+            const size = 30;
+            const x = [];
+            const y = [];
+            const z = [];
+            
+            for (let i = 0; i < size; i++) {
+                x[i] = i;
+                y[i] = i;
+                z[i] = [];
+                for (let j = 0; j < size; j++) {
+                    z[i][j] = Math.sin(i * 0.2) * Math.cos(j * 0.2) * 100 + 
+                              Math.sin(i * 0.1 + j * 0.1) * 50 + 
+                              Math.random() * 10;
+                }
+            }
+            
+            allChartData.contour = {
+                data: [
+                    {
+                        x: x,
+                        y: y,
+                        z: z,
+                        type: 'contour',
+                        colorscale: 'Earth',
+                        showscale: true,
+                        colorbar: { title: '高度值' },
+                        contours: {
+                            coloring: 'heatmap',
+                            showlabels: true,
+                            labelfont: { family: currentFont }
+                        }
+                    }
+                ],
+                layout: {
+                    title: '三维地形等高线图',
+                    xaxis: { title: 'X坐标' },
+                    yaxis: { title: 'Y坐标' },
+                    ...themes[currentTheme],
+                    font: { ...themes[currentTheme].font, family: currentFont }
+                }
+            };
+            
+            Plotly.newPlot('contourChart', allChartData.contour.data, allChartData.contour.layout, {responsive: true});
+        }
+
+        // 创建3D曲面图
+        function createThreeDChart() {
+            const size = 25;
+            const x = [];
+            const y = [];
+            const z = [];
+            
+            for (let i = 0; i < size; i++) {
+                x[i] = i;
+                y[i] = i;
+                z[i] = [];
+                for (let j = 0; j < size; j++) {
+                    z[i][j] = Math.sin(i * 0.2) * Math.cos(j * 0.2) * 50 + 
+                              Math.sin((i + j) * 0.1) * 30;
+                }
+            }
+            
+            allChartData.threeD = {
+                data: [
+                    {
+                        x: x,
+                        y: y,
+                        z: z,
+                        type: 'surface',
+                        colorscale: 'Viridis',
+                        showscale: true,
+                        colorbar: { title: 'Z值' }
+                    }
+                ],
+                layout: {
+                    title: '3D立体曲面图',
+                    scene: {
+                        xaxis: { title: 'X轴' },
+                        yaxis: { title: 'Y轴' },
+                        zaxis: { title: 'Z轴' }
+                    },
+                    ...themes[currentTheme],
+                    font: { ...themes[currentTheme].font, family: currentFont }
+                }
+            };
+            
+            Plotly.newPlot('threeDChart', allChartData.threeD.data, allChartData.threeD.layout, {responsive: true});
+        }
+
+        // 创建棉棒图
+        function createStemChart() {
+            const carData = [
+                {name: '奔驰A级', mpg: 25.4, hp: 201},
+                {name: '宝马3系', mpg: 30.2, hp: 255},
+                {name: '奥迪A4', mpg: 27.9, hp: 201},
+                {name: '大众帕萨特', mpg: 29.5, hp: 174},
+                {name: '丰田凯美瑞', mpg: 32.1, hp: 203},
+                {name: '本田雅阁', mpg: 33.2, hp: 192},
+                {name: '福特蒙迪欧', mpg: 28.8, hp: 250},
+                {name: '雪佛兰迈锐宝', mpg: 26.1, hp: 197}
+            ];
+            
+            const colors = colorSchemes[currentColorScheme];
+            
+            allChartData.stem = {
+                data: [
+                    {
+                        x: carData.map(d => d.name),
+                        y: carData.map(d => d.mpg),
+                        type: 'scatter',
+                        mode: 'markers+lines',
+                        name: 'MPG',
+                        marker: { 
+                            color: colors[0], 
+                            size: 12,
+                            symbol: 'diamond'
+                        },
+                        line: { 
+                            color: colors[0], 
+                            width: 2 
+                        }
+                    },
+                    {
+                        x: carData.map(d => d.name),
+                        y: carData.map(d => d.hp/10), // 缩放以便在同一图表显示
+                        type: 'scatter',
+                        mode: 'markers+lines',
+                        name: 'HP/10',
+                        marker: { 
+                            color: colors[1], 
+                            size: 12,
+                            symbol: 'circle'
+                        },
+                        line: { 
+                            color: colors[1], 
+                            width: 2 
+                        }
+                    }
+                ],
+                layout: {
+                    title: '轿车燃料消耗与马力对比',
+                    xaxis: { title: '车型', tickangle: -45 },
+                    yaxis: { title: '数值 (MPG, HP/10)' },
+                    ...themes[currentTheme],
+                    font: { ...themes[currentTheme].font, family: currentFont }
+                }
+            };
+            
+            Plotly.newPlot('stemChart', allChartData.stem.data, allChartData.stem.layout, {responsive: true});
+        }
+
+        // 创建甘特图
+        function createGanttChart() {
+            const tasks = [
+                {Task: '需求分析', Start: '2024-01-01', Finish: '2024-01-15', Resource: '产品经理'},
+                {Task: '系统设计', Start: '2024-01-10', Finish: '2024-01-25', Resource: '架构师'},
+                {Task: '前端开发', Start: '2024-01-20', Finish: '2024-02-10', Resource: '前端团队'},
+                {Task: '后端开发', Start: '2024-01-20', Finish: '2024-02-15', Resource: '后端团队'},
+                {Task: '数据库设计', Start: '2024-01-15', Finish: '2024-01-30', Resource: 'DBA'},
+                {Task: '系统测试', Start: '2024-02-05', Finish: '2024-02-20', Resource: '测试团队'},
+                {Task: '部署上线', Start: '2024-02-18', Finish: '2024-02-25', Resource: '运维团队'}
+            ];
+            
+            const colors = colorSchemes[currentColorScheme];
+            
+            allChartData.gantt = {
+                data: tasks.map((task, index) => ({
+                    x: [task.Start, task.Finish],
+                    y: [task.Task, task.Task],
+                    type: 'scatter',
+                    mode: 'lines+markers',
+                    name: task.Resource,
+                    line: { 
+                        color: colors[index % colors.length], 
+                        width: 20 
+                    },
+                    marker: { size: 8 }
+                })),
+                layout: {
+                    title: '项目甘特图',
+                    xaxis: { 
+                        title: '日期',
+                        type: 'date'
+                    },
+                    yaxis: { title: '任务' },
+                    showlegend: true,
+                    ...themes[currentTheme],
+                    font: { ...themes[currentTheme].font, family: currentFont }
+                }
+            };
+            
+            Plotly.newPlot('ganttChart', allChartData.gantt.data, allChartData.gantt.layout, {responsive: true});
+        }
+
+        // 创建人口金字塔图
+        function createPyramidChart() {
+            const ageGroups = ['0-4', '5-9', '10-14', '15-19', '20-24', '25-29', '30-34', '35-39', '40-44', '45-49', '50-54', '55-59', '60-64', '65-69', '70-74', '75-79', '80+'];
+            const maleData = [5.2, 4.8, 4.5, 4.2, 4.8, 5.5, 6.2, 6.8, 6.5, 5.8, 5.2, 4.5, 3.8, 3.2, 2.5, 1.8, 1.2];
+            const femaleData = [4.8, 4.5, 4.2, 3.9, 4.5, 5.2, 5.8, 6.2, 6.0, 5.5, 4.8, 4.2, 3.6, 3.0, 2.4, 1.9, 1.5];
+            
+            allChartData.pyramid = {
+                data: [
+                    {
+                        x: maleData.map(d => -d),
+                        y: ageGroups,
+                        type: 'bar',
+                        name: '男性',
+                        orientation: 'h',
+                        marker: { color: '#3498db' }
+                    },
+                    {
+                        x: femaleData,
+                        y: ageGroups,
+                        type: 'bar',
+                        name: '女性',
+                        orientation: 'h',
+                        marker: { color: '#e74c3c' }
+                    }
+                ],
+                layout: {
+                    title: '人口年龄性别结构金字塔',
+                    xaxis: { 
+                        title: '人口比例 (%)',
+                        range: [-8, 8]
+                    },
+                    yaxis: { title: '年龄组' },
+                    barmode: 'overlay',
+                    legend: { x: 0.7, y: 0.1 },
+                    ...themes[currentTheme],
+                    font: { ...themes[currentTheme].font, family: currentFont }
+                }
+            };
+            
+            Plotly.newPlot('pyramidChart', allChartData.pyramid.data, allChartData.pyramid.layout, {responsive: true});
+        }
+
+        // 创建哑铃图
+        function createDumbbellChart() {
+            const cities = ['北京', '上海', '广州', '深圳', '杭州', '成都', '武汉', '西安', '南京', '重庆'];
+            const pct2018 = [85.2, 89.5, 82.3, 88.1, 79.8, 76.5, 78.2, 74.6, 81.3, 73.9];
+            const pct2022 = [91.5, 94.2, 87.8, 92.6, 85.4, 83.2, 84.7, 80.1, 87.2, 79.8];
+            const colors = colorSchemes[currentColorScheme];
+            
+            const traces = [];
+            for (let i = 0; i < cities.length; i++) {
+                // 2018年数据点
+                traces.push({
+                    x: [pct2018[i]],
+                    y: [cities[i]],
+                    type: 'scatter',
+                    mode: 'markers',
+                    name: '2018年',
+                    marker: { 
+                        color: colors[0], 
+                        size: 10 
+                    },
+                    showlegend: i === 0
+                });
+                
+                // 连接线
+                traces.push({
+                    x: [pct2018[i], pct2022[i]],
+                    y: [cities[i], cities[i]],
+                    type: 'scatter',
+                    mode: 'lines',
+                    name: '变化',
+                    line: { 
+                        color: colors[2], 
+                        width: 2 
+                    },
+                    showlegend: false
+                });
+                
+                // 2022年数据点
+                traces.push({
+                    x: [pct2022[i]],
+                    y: [cities[i]],
+                    type: 'scatter',
+                    mode: 'markers',
+                    name: '2022年',
+                    marker: { 
+                        color: colors[1], 
+                        size: 10 
+                    },
+                    showlegend: i === 0
+                });
+            }
+            
+            allChartData.dumbbell = {
+                data: traces,
+                layout: {
+                    title: '主要城市PCT指数变化哑铃图',
+                    xaxis: { title: 'PCT指数' },
+                    yaxis: { title: '城市' },
+                    ...themes[currentTheme],
+                    font: { ...themes[currentTheme].font, family: currentFont }
+                }
+            };
+            
+            Plotly.newPlot('dumbbellChart', allChartData.dumbbell.data, allChartData.dumbbell.layout, {responsive: true});
+        }
+
+        // 更新所有图表
+        function updateAllCharts() {
+            createLineChart();
+            createScatterChart();
+            createHistogramChart();
+            createBoxChart();
+            createHeatmapChart();
+            createContourChart();
+            createThreeDChart();
+            createStemChart();
+            createGanttChart();
+            createPyramidChart();
+            createDumbbellChart();
+            updateStats();
+        }
+
+        // 随机化数据
+        function randomizeData() {
+            dataPoints = Math.floor(Math.random() * 100) + 20;
+            document.getElementById('dataPoints').value = dataPoints;
+            document.getElementById('dataPointsDisplay').textContent = dataPoints;
+            updateAllCharts();
+        }
+
+        // 导出单个图表
+        function exportChart(chartId) {
+            Plotly.downloadImage(chartId, {
+                format: 'png',
+                width: 1200,
+                height: 800,
+                filename: chartId + '_' + new Date().getTime()
+            });
+        }
+
+        // 导出所有图表
+        function exportAllCharts() {
+            const charts = ['lineChart', 'scatterChart', 'histogramChart', 'boxChart', 
+                           'heatmapChart', 'contourChart', 'threeDChart', 'stemChart',
+                           'ganttChart', 'pyramidChart', 'dumbbellChart'];
+            
+            charts.forEach((chartId, index) => {
+                setTimeout(() => {
+                    exportChart(chartId);
+                }, index * 500); // 每500ms导出一个图表
+            });
+        }
+
+        // 更新统计信息
+        function updateStats() {
+            document.getElementById('totalPoints').textContent = dataPoints * 7; // 估算总数据点
+            document.getElementById('totalCharts').textContent = '11';
+            document.getElementById('dataSeries').textContent = '3';
+            document.getElementById('colorCount').textContent = colorSchemes[currentColorScheme].length;
+        }
+
+        // 过滤图表显示
+        function filterCharts() {
+            const chartType = document.getElementById('chartType').value;
+            const containers = document.querySelectorAll('.chart-container');
+            
+            containers.forEach(container => {
+                if (chartType === 'all' || container.dataset.chart === chartType) {
+                    container.style.display = 'block';
+                } else {
+                    container.style.display = 'none';
+                }
+            });
+        }
+
+        // 事件监听器
+        document.getElementById('chartType').addEventListener('change', filterCharts);
+        
+        document.getElementById('theme').addEventListener('change', function() {
+            currentTheme = this.value;
+            updateAllCharts();
+        });
+        
+        document.getElementById('colorScheme').addEventListener('change', function() {
+            currentColorScheme = this.value;
+            updateAllCharts();
+        });
+        
+        document.getElementById('fontFamily').addEventListener('change', function() {
+            currentFont = this.value;
+            updateAllCharts();
+        });
+        
+        document.getElementById('dataPoints').addEventListener('input', function() {
+            dataPoints = parseInt(this.value);
+            document.getElementById('dataPointsDisplay').textContent = dataPoints;
+        });
+        
+        document.getElementById('dataPoints').addEventListener('change', updateAllCharts);
+
+        // 初始化
+        window.addEventListener('load', function() {
+            updateAllCharts();
+            updateStats();
+        });
+
+        // 响应式调整
+        window.addEventListener('resize', function() {
+            const charts = ['lineChart', 'scatterChart', 'histogramChart', 'boxChart', 
+                           'heatmapChart', 'contourChart', 'threeDChart', 'stemChart',
+                           'ganttChart', 'pyramidChart', 'dumbbellChart'];
+            charts.forEach(chartId => {
+                Plotly.Plots.resize(chartId);
+            });
+        });
+    </script>
+</body>
+</html>

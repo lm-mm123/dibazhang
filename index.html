@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>第8章完整数据可视化平台</title>
+    <meta http-equiv="refresh" content="3; url=chapter8_complete_interactive_visualization.html">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Microsoft YaHei', 'Noto Sans SC', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #2c3e50;
+        }
+        
+        .welcome-container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 25px;
+            padding: 60px 50px;
+            box-shadow: 0 25px 60px rgba(0,0,0,0.15);
+            max-width: 700px;
+            position: relative;
+            overflow: hidden;
+            text-align: center;
+        }
+        
+        .welcome-container::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(102, 126, 234, 0.1), transparent);
+            animation: shimmer 3s infinite;
+        }
+        
+        @keyframes shimmer {
+            0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+            100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+        }
+        
+        h1 {
+            font-size: 3em;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .subtitle {
+            font-size: 1.4em;
+            color: #6c757d;
+            margin-bottom: 30px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .chart-types {
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            border-radius: 15px;
+            padding: 25px;
+            margin: 25px 0;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .chart-types h3 {
+            color: #495057;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+        }
+        
+        .chart-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            font-size: 0.9em;
+        }
+        
+        .chart-item {
+            background: white;
+            padding: 8px 12px;
+            border-radius: 8px;
+            border-left: 4px solid;
+            border-left-color: #667eea;
+        }
+        
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(102, 126, 234, 0.3);
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+            position: relative;
+            z-index: 1;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .countdown {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+            margin: 20px 0;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .manual-link {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #28a745, #20c997);
+            color: white;
+            text-decoration: none;
+            border-radius: 12px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .manual-link:hover {
+            background: linear-gradient(135deg, #218838, #1e7e34);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(40, 167, 69, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="welcome-container">
+        <h1>第8章数据可视化</h1>
+        <div class="subtitle">完整交互式可视化平台</div>
+        
+        <div class="chart-types">
+            <h3>📊 包含11种专业图表类型</h3>
+            <div class="chart-grid">
+                <div class="chart-item">📈 折线图</div>
+                <div class="chart-item">🔵 散点图</div>
+                <div class="chart-item">📊 直方图</div>
+                <div class="chart-item">📦 箱线图</div>
+                <div class="chart-item">🔥 热力图</div>
+                <div class="chart-item">🗺️ 等高线图</div>
+                <div class="chart-item">🌐 3D曲面图</div>
+                <div class="chart-item">🌿 棉棒图</div>
+                <div class="chart-item">📅 甘特图</div>
+                <div class="chart-item">👥 人口金字塔</div>
+                <div class="chart-item">⚖️ 哑铃图</div>
+            </div>
+        </div>
+        
+        <div class="loading-spinner"></div>
+        <div class="countdown" id="countdown">3</div>
+        <p style="position: relative; z-index: 1;">正在加载完整的第8章数据可视化平台...</p>
+        
+        <a href="chapter8_complete_interactive_visualization.html" class="manual-link">
+            立即进入 →
+        </a>
+    </div>
+
+    <script>
+        let count = 3;
+        const countdownElement = document.getElementById('countdown');
+        
+        const timer = setInterval(() => {
+            count--;
+            countdownElement.textContent = count;
+            if (count <= 0) {
+                clearInterval(timer);
+                window.location.href = 'chapter8_complete_interactive_visualization.html';
+            }
+        }, 1000);
+        
+        // 如果用户点击手动跳转链接，停止自动跳转
+        document.querySelector('.manual-link').addEventListener('click', function() {
+            clearInterval(timer);
+        });
+    </script>
+</body>
+</html>
